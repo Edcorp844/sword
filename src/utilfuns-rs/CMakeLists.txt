@@ -1,4 +1,20 @@
-find_program(CARGO_EXECUTABLE cargo HINTS "$ENV{HOME}/.cargo/bin" REQUIRED)
+# Locate Rust Cargo build tool
+# Try hardcoded user home first, then system paths
+set(CARGO_HINTS "$ENV{HOME}/.cargo/bin" "/opt/homebrew/bin" "/usr/local/bin")
+find_program(CARGO_EXECUTABLE cargo HINTS ${CARGO_HINTS})
+
+if(NOT CARGO_EXECUTABLE)
+    # If not found, print diagnostic info and fail
+    message(WARNING "Cargo not found in expected locations: ${CARGO_HINTS}")
+    message(FATAL_ERROR "Cargo not found. Please install Rust from https://rustup.rs/")
+endif()
+
+message(STATUS "Using Cargo: ${CARGO_EXECUTABLE}")
+
+
+
+
+
 
 set(RUST_UTILFUNS_TARGET_DIR "${CMAKE_CURRENT_BINARY_DIR}/target")
 set(RUST_UTILFUNS_LIB "${RUST_UTILFUNS_TARGET_DIR}/release/libsword_utilfuns.a")
