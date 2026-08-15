@@ -131,6 +131,7 @@ extern "C" {
 	const char *sword_stristr(const char *s1, const char *s2);
 	int sword_strnicmp(const char *s1, const char *s2, int len);
 	int sword_stricmp(const char *s1, const char *s2);
+	char *sword_assure_valid_utf8(const char *buf);
 }
 
 char* strstrip(char* istr) {
@@ -169,28 +170,11 @@ int stricmp(const char *s1, const char *s2) {
 
 
 SWBuf assureValidUTF8(const char *buf) {
-
-	SWBuf myCopy = buf;
-	const unsigned char *b = (const unsigned char *)myCopy.c_str();
-	const unsigned char *q = nullptr;
-	bool invalidChar = false;
-	while (*b) {
-		q = b;
-		if (!getUniCharFromUTF8(&b)) {
-			long len = b - q;
-			if (len) {
-				invalidChar = true;
-				for (long start = q - (const unsigned char *)myCopy.c_str(); len; len--) {
-					myCopy[start+len-1] = 0x1a;	// unicode replacement character
-				}
-
-			}
-		}
-	}
-	if (invalidChar) {
-//		SWLog::getSystemLog()->logWarning("Changing invalid UTF-8 string (%s) to (%s)\n", buf, myCopy.c_str());
-	}
-	return myCopy;
+	if (!buf) return SWBuf();
+	char *rustBuf = sword_assure_valid_utf8(buf);
+	SWBuf result(rustBuf);
+	free(rustBuf);
+	return result;
 }
 
 
