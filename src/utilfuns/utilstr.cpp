@@ -126,27 +126,15 @@ namespace {
 	}
 }
 
+extern "C" {
+	char *sword_strstrip(char *istr);
+	const char *sword_stristr(const char *s1, const char *s2);
+	int sword_strnicmp(const char *s1, const char *s2, int len);
+	int sword_stricmp(const char *s1, const char *s2);
+}
+
 char* strstrip(char* istr) {
-	if (!istr || *istr == '\0') return istr;
-
-	// Use string_view as a safe "measuring tape" over the existing buffer —
-	// no allocation, just index math.
-	std::string_view sv(istr);
-
-	auto start = std::ranges::find_if_not(sv, is_whitespace);
-	if (start == sv.end()) {
-		*istr = '\0'; // entirely whitespace (or empty)
-		return istr;
-	}
-	auto end = std::ranges::find_if_not(sv | std::views::reverse, is_whitespace).base();
-
-	const size_t new_len     = static_cast<size_t>(std::distance(start, end));
-	const size_t start_offset = static_cast<size_t>(std::distance(sv.begin(), start));
-
-	std::memmove(istr, istr + start_offset, new_len);
-	istr[new_len] = '\0';
-
-	return istr;
+	return sword_strstrip(istr);
 }
 
 
@@ -160,25 +148,7 @@ char* strstrip(char* istr) {
  */
 
 const char *stristr(const char *s1, const char *s2) {
-	if (!s1 || !s2) return nullptr;
-
-	const std::string_view sv1(s1);
-	const std::string_view sv2(s2);
-
-	if (sv2.empty()) return s1;
-	if (sv2.size() > sv1.size()) return nullptr;
-
-	// std::ranges::search with a case-folding projection replaces the old
-	// new[]/delete[] scratch buffer + hand-rolled double loop. No heap
-	// allocation, no manual index bookkeeping.
-	const auto result = std::ranges::search(
-		sv1, sv2,
-		{},
-		[](unsigned char c) { return SW_toupper(c); },
-		[](unsigned char c) { return SW_toupper(c); });
-
-	if (result.empty()) return nullptr;
-	return s1 + std::distance(sv1.begin(), result.begin());
+	return sword_stristr(s1, s2);
 }
 
 /******************************************************************************
@@ -190,44 +160,11 @@ const char *stristr(const char *s1, const char *s2) {
  */
 
 int strnicmp(const char *s1, const char *s2, int len) {
-	// Fixes vs. the original:
-	//  - diff was stored in a `char`, silently truncating/sign-flipping
-	//    the int subtraction from SW_toupper(). Kept as `int` throughout.
-	//  - original bounds mixed `len` with strlen(s1)/strlen(s2) in a way
-	//    that didn't match standard strncmp-style semantics. This version
-	//    compares up to `len` bytes and stops correctly at either
-	//    string's null terminator.
-	if (!s1 || !s2 || len <= 0) return 0;
-
-	for (int i = 0; i < len; ++i) {
-		const unsigned char c1 = static_cast<unsigned char>(s1[i]);
-		const unsigned char c2 = static_cast<unsigned char>(s2[i]);
-
-		const int diff = SW_toupper(c1) - SW_toupper(c2);
-		if (diff) return diff;
-		if (c1 == '\0') return 0; // both strings ended identically within len
-	}
-	return 0;
+	return sword_strnicmp(s1, s2, len);
 }
 
 int stricmp(const char *s1, const char *s2) {
-	// Previously delegated to platform libc (strcasecmp / _stricmp /
-	// stricmp) behind an #ifdef ladder. Those case-fold using the
-	// locale/libc tables, which can disagree with this codebase's own
-	// SW_toupper table. Implemented directly against SW_toupper instead:
-	// removes the platform branch entirely and keeps case-folding
-	// consistent with the rest of this file.
-	if (!s1 || !s2) return 0;
-
-	while (*s1 && *s2) {
-		const int diff = SW_toupper(static_cast<unsigned char>(*s1)) -
-		                  SW_toupper(static_cast<unsigned char>(*s2));
-		if (diff) return diff;
-		++s1;
-		++s2;
-	}
-	return SW_toupper(static_cast<unsigned char>(*s1)) -
-	       SW_toupper(static_cast<unsigned char>(*s2));
+	return sword_stricmp(s1, s2);
 }
 
 
