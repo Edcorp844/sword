@@ -1,0 +1,9 @@
+{
+	"InstallScripts" : 
+	[
+		"/Users/zoebrooklyn/Documents/Dev/sword/build/cmake_install.cmake",
+		"/Users/zoebrooklyn/Documents/Dev/sword/build/utilities/cmake_install.cmake",
+		"/Users/zoebrooklyn/Documents/Dev/sword/build/utilities/diatheke/cmake_install.cmake"
+	],
+	"Parallel" : false
+}
