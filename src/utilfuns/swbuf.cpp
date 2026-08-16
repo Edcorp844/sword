@@ -63,12 +63,12 @@ SWBuf &SWBuf::setFormattedVA(const char *format, va_list argptr) {
 	va_copy(argptr2, argptr);
 #ifdef NO_VSNPRINTF
 	static char junkBuf[JUNKBUFSIZE];
-	int len = vsprintf(junkBuf, format, argptr)+1;
+	int len = vsnprintf(junkBuf, sizeof(junkBuf), format, argptr)+1;
 #else
 	int len = vsnprintf(0, 0, format, argptr)+1;
 #endif
 	assureSize(len);
-	end = vsprintf(buf, format, argptr2) + buf;
+	end = vsnprintf(buf, sizeof(buf), format, argptr2) + buf;
 	va_end(argptr2);
 	return *this;
 }
@@ -84,15 +84,16 @@ SWBuf &SWBuf::appendFormatted(const char *format, ...) {
 	va_start(argptr, format);
 #ifdef NO_VSNPRINTF
 	static char junkBuf[JUNKBUFSIZE];
-	int len = vsprintf(junkBuf, format, argptr)+1;
+	int len = vsnprintf(junkBuf, sizeof(junkBuf), format, argptr)+1;
 #else
 	int len = vsnprintf(0, 0, format, argptr)+1;
 #endif
 	va_end(argptr);
 	assureMore(len);
 	va_start(argptr, format);
-	end += vsprintf(end, format, argptr);
+	end += vsnprintf(end,sizeof(end), format, argptr);
 	va_end(argptr);
+
 	return *this;
 }
 

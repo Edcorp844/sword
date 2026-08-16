@@ -208,7 +208,7 @@ int main(int argc, char **argv)
 			*tmpKey = *vkey;
 			tmpKey->setChapter(0);
 			tmpKey->setVerse(0);
-			sprintf(buf, "\t<div type=\"book\" osisID=\"%s\">\n", tmpKey->getOSISRef());
+			snprintf(buf, sizeof(buf), "\t<div type=\"book\" osisID=\"%s\">\n", tmpKey->getOSISRef());
 //			filter.ProcessText(buf, 200 - 3, &lastHeading, inModule);
 			cout << "" << buf << endl;
 			openbook = true;
@@ -222,13 +222,13 @@ int main(int argc, char **argv)
 			*buf = 0;
 			*tmpKey = *vkey;
 			tmpKey->setVerse(0);
-			sprintf(buf, "\t<chapter osisID=\"%s\">\n", tmpKey->getOSISRef());
+			snprintf(buf, sizeof(buf), "\t<chapter osisID=\"%s\">\n", tmpKey->getOSISRef());
 //			filter.ProcessText(buf, 200 - 3, &lastHeading, inModule);
 			cout << "" << buf;
 			openchap = true;
 		}
 		SWBuf verseText = inModule->getRawEntry();
-		sprintf(buf, "\t\t<verse osisID=\"%s\">", vkey->getOSISRef());
+		snprintf(buf, sizeof(buf), "\t\t<verse osisID=\"%s\">", vkey->getOSISRef());
 		cout << buf << verseText.c_str() << "</verse>\n" << endl;
 		lastChap = vkey->getChapter();
 		lastBook = vkey->getBook();

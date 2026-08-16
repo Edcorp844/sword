@@ -125,6 +125,10 @@ ENDIF(LIBSWORD_LIBRARY_TYPE MATCHES ".*Static.*" OR NOT LIBSWORD_LIBRARY_TYPE)
 
 ADD_SUBDIRECTORY(src/utilfuns-rs)
 
+# The Rust utilfuns library is a proper CMake dependency of SWORD. Keep the
+# dependency in the target graph so downstream CMake consumers and build tools
+# see the correct link relationship without forcing a custom archive merge step.
+
 ################################################################################################
 # Some random user settings
 #

@@ -400,7 +400,7 @@ void extractVerseText(int fdviewable, int fdbook, SectionLevelInfo *sectionLevel
 		readViewableBlockText(fdbook, &vb, &(_freeCachedEntryText.entryText));
 		lastEntryOffset = sectionLevelInfo->viewableOffset;
 	}
-	sprintf(numberBuf, "%d", sectionLevelInfo->startLevel);
+	snprintf(numberBuf, sizeof(numberBuf), "%d", sectionLevelInfo->startLevel);
 	startToken = "\\stepstartlevel";
 	startToken += numberBuf;
 	char *start = strstr(_freeCachedEntryText.entryText, startToken.c_str());
