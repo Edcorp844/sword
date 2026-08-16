@@ -1,46 +1,35 @@
-if(NOT DEFINED stage_dir)
-    message(FATAL_ERROR "merge_static_lib.cmake requires stage_dir")
-endif()
-if(NOT DEFINED archive)
-    message(FATAL_ERROR "merge_static_lib.cmake requires archive")
+# merge_static_lib.cmake
+# Usage: cmake -DSTAGE_DIR=... -DTARGET_LIB=... -DAR=... -DRANLIB=... -P merge_static_lib.cmake
+#
+# Merges all .o object files from STAGE_DIR into TARGET_LIB using deterministic
+# CMake file glob instead of shell expansion (avoids sh/Make/Ninja/Xcode differences)
+
+if(NOT STAGE_DIR OR NOT TARGET_LIB OR NOT CMAKE_AR)
+    message(FATAL_ERROR "Required variables missing: STAGE_DIR=${STAGE_DIR}, TARGET_LIB=${TARGET_LIB}, CMAKE_AR=${CMAKE_AR}")
 endif()
 
-file(REMOVE "${stage_dir}/__.SYMDEF")
-file(GLOB rust_objects "${stage_dir}/*.o")
-if(rust_objects STREQUAL "")
-    message(FATAL_ERROR "No Rust utility object files were extracted into ${stage_dir}")
+# Use CMake to glob, not shell, for cross-platform consistency
+file(GLOB STAGED_OBJECTS "${STAGE_DIR}/*.o")
+
+list(LENGTH STAGED_OBJECTS OBJ_COUNT)
+if(OBJ_COUNT EQUAL 0)
+    message(FATAL_ERROR "No .o files found in ${STAGE_DIR} — Rust archive extraction produced nothing to merge.")
 endif()
 
-set(temp_archive "${archive}.rusttmp")
+message(STATUS "Merging ${OBJ_COUNT} object file(s) from ${STAGE_DIR} into ${TARGET_LIB}")
+
+# Merge objects into the target archive
 execute_process(
-    COMMAND ${CMAKE_COMMAND} -E copy "${archive}" "${temp_archive}"
-    RESULT_VARIABLE copy_result
-    OUTPUT_VARIABLE copy_output
-    ERROR_VARIABLE copy_error
+    COMMAND ${CMAKE_AR} rcs "${TARGET_LIB}" ${STAGED_OBJECTS}
+    RESULT_VARIABLE AR_RESULT
 )
-if(NOT copy_result EQUAL 0)
-    message(FATAL_ERROR "Failed to stage ${archive} for merge\n${copy_output}\n${copy_error}")
+if(NOT AR_RESULT EQUAL 0)
+    message(FATAL_ERROR "ar rcs failed with code ${AR_RESULT} while merging ${OBJ_COUNT} objects into ${TARGET_LIB}")
 endif()
 
-execute_process(
-    COMMAND ${CMAKE_AR} rcs "${temp_archive}" ${rust_objects}
-    RESULT_VARIABLE ar_result
-    OUTPUT_VARIABLE ar_output
-    ERROR_VARIABLE ar_error
-)
-
-if(NOT ar_result EQUAL 0)
-    message(FATAL_ERROR "Failed to merge Rust utility objects into ${archive}\n${ar_output}\n${ar_error}")
+# Rebuild archive index (important on some systems)
+if(CMAKE_RANLIB)
+    execute_process(COMMAND ${CMAKE_RANLIB} "${TARGET_LIB}")
 endif()
 
-execute_process(
-    COMMAND ${CMAKE_COMMAND} -E copy "${temp_archive}" "${archive}"
-    RESULT_VARIABLE move_result
-    OUTPUT_VARIABLE move_output
-    ERROR_VARIABLE move_error
-)
-if(NOT move_result EQUAL 0)
-    message(FATAL_ERROR "Failed to install merged archive over ${archive}\n${move_output}\n${move_error}")
-endif()
-
-file(REMOVE "${temp_archive}")
+message(STATUS "Successfully merged ${OBJ_COUNT} objects into ${TARGET_LIB}")

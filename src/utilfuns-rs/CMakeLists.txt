@@ -1,27 +1,33 @@
 # Locate Rust Cargo build tool
-# Try hardcoded user home first, then system paths
-set(CARGO_HINTS "$ENV{HOME}/.cargo/bin" "/opt/homebrew/bin" "/usr/local/bin")
-find_program(CARGO_EXECUTABLE cargo HINTS ${CARGO_HINTS})
+set(CARGO_HOME "$ENV{HOME}/.cargo/bin")
 
-if(NOT CARGO_EXECUTABLE)
-    # If not found, print diagnostic info and fail
-    message(WARNING "Cargo not found in expected locations: ${CARGO_HINTS}")
-    message(FATAL_ERROR "Cargo not found. Please install Rust from https://rustup.rs/")
+# First check well-known locations
+if(EXISTS "${CARGO_HOME}/cargo")
+    set(CARGO_EXECUTABLE "${CARGO_HOME}/cargo")
+elseif(EXISTS "/opt/homebrew/opt/rust/bin/cargo")
+    set(CARGO_EXECUTABLE "/opt/homebrew/opt/rust/bin/cargo")
+elseif(EXISTS "/usr/local/cargo")
+    set(CARGO_EXECUTABLE "/usr/local/cargo")
+else()
+    # Fall back to searching PATH if direct checks fail
+    find_program(CARGO_EXECUTABLE cargo)
+    if(NOT CARGO_EXECUTABLE)
+        message(FATAL_ERROR "Cargo not found. Checked: ${CARGO_HOME}/cargo, /opt/homebrew/opt/rust/bin/cargo, /usr/local/cargo. Please install Rust from https://rustup.rs/")
+    endif()
+endif()
+
+if(NOT EXISTS "${CARGO_EXECUTABLE}")
+    message(FATAL_ERROR "Cargo executable not found at: ${CARGO_EXECUTABLE}")
 endif()
 
 message(STATUS "Using Cargo: ${CARGO_EXECUTABLE}")
 
-
-
-
-
-
-set(RUST_UTILFUNS_TARGET_DIR "${CMAKE_CURRENT_BINARY_DIR}/target")
+set(RUST_UTILFUNS_TARGET_DIR "${CMAKE_CURRENT_SOURCE_DIR}/target")
 set(RUST_UTILFUNS_LIB "${RUST_UTILFUNS_TARGET_DIR}/release/libsword_utilfuns.a")
 
 add_custom_command(
     OUTPUT "${RUST_UTILFUNS_LIB}"
-    COMMAND ${CARGO_EXECUTABLE} build --release --target-dir "${RUST_UTILFUNS_TARGET_DIR}"
+    COMMAND ${CARGO_EXECUTABLE} build --release
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/Cargo.toml
             ${CMAKE_CURRENT_SOURCE_DIR}/src/lib.rs
@@ -30,13 +36,6 @@ add_custom_command(
 
 add_custom_target(sword_rust_utilfuns ALL DEPENDS "${RUST_UTILFUNS_LIB}")
 
-add_library(rust_utilfuns STATIC IMPORTED GLOBAL)
-set_target_properties(rust_utilfuns PROPERTIES
-    IMPORTED_LOCATION "${RUST_UTILFUNS_LIB}"
-)
+# Export path for use in parent CMakeLists
+set(SWORD_RUST_UTILFUNS_LIB "${RUST_UTILFUNS_LIB}" PARENT_SCOPE)
 
-add_dependencies(sword sword_rust_utilfuns)
-add_dependencies(sword_static sword_rust_utilfuns)
-
-target_link_libraries(sword rust_utilfuns)
-target_link_libraries(sword_static rust_utilfuns)
