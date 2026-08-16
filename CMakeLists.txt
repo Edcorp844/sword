@@ -13,14 +13,17 @@
 # not, then this file is released under the GPLv2 by myself.
 
 CMAKE_POLICY(SET CMP0010 NEW)
-# include(FindSubversion)
-# Subversion_WC_INFO(${CMAKE_CURRENT_SOURCE_DIR} MYSVN IGNORE_SVN_FAILURE)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.5...4.0)
 
 PROJECT(libsword CXX C)
-cmake_minimum_required(VERSION 3.5...4.0)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+include(FindSubversion)
+
+if(Subversion_FOUND)
+	Subversion_WC_INFO(${CMAKE_CURRENT_SOURCE_DIR} MYSVN IGNORE_SVN_FAILURE)
+endif(Subversion_FOUND)
 SET(SWORD_VERSION 1.9.0)
 if(DEFINED MYSVN_WC_REVISION)
 	SET(SWORD_VERSION ${SWORD_VERSION}.${MYSVN_WC_REVISION})
@@ -66,10 +69,7 @@ FIND_PACKAGE(CURL QUIET)
 FIND_PACKAGE(CLucene QUIET)
 FIND_PACKAGE(ZLIB QUIET)
 FIND_PACKAGE(PkgConfig QUIET)
-#FIND_PACKAGE(Regex QUIET)
-# Force use of internal regex for Windows/MinGW
-SET(WITH_INTERNAL_REGEX ON CACHE BOOL "Use internal regex" FORCE)
-ADD_DEFINITIONS(-DREGEX_MALLOC)
+FIND_PACKAGE(Regex QUIET)
 
 ###########################################################################################
 # Based on user input and the results of the above tests, we may need to mux with the source
@@ -122,40 +122,6 @@ IF(LIBSWORD_LIBRARY_TYPE MATCHES ".*Static.*" OR NOT LIBSWORD_LIBRARY_TYPE)
 	ENDIF(NOT MSVC OR NOT LIBSWORD_LIBRARY_TYPE MATCHES ".*Shared.*")
 	MESSAGE(STATUS "Building Static library.")
 ENDIF(LIBSWORD_LIBRARY_TYPE MATCHES ".*Static.*" OR NOT LIBSWORD_LIBRARY_TYPE)
-
-ADD_SUBDIRECTORY(src/utilfuns-rs)
-
-# Post-build: merge Rust archive objects into sword_static
-IF(BUILDING_STATIC)
-    set(RUST_UTILFUNS_STAGE_DIR "${CMAKE_BINARY_DIR}/src/utilfuns-rs/target/release/utilfuns-stage")
-    
-    add_custom_command(
-        TARGET sword_static POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E remove_directory "${RUST_UTILFUNS_STAGE_DIR}"
-        COMMAND ${CMAKE_COMMAND} -E make_directory "${RUST_UTILFUNS_STAGE_DIR}"
-        COMMAND ${CMAKE_COMMAND} -E chdir "${RUST_UTILFUNS_STAGE_DIR}" ${CMAKE_AR} x "${SWORD_RUST_UTILFUNS_LIB}"
-        COMMAND ${CMAKE_COMMAND}
-                -DSTAGE_DIR=${RUST_UTILFUNS_STAGE_DIR}
-                -DTARGET_LIB=$<TARGET_FILE:sword_static>
-                -DCMAKE_AR=${CMAKE_AR}
-                -DCMAKE_RANLIB=${CMAKE_RANLIB}
-                -P "${CMAKE_SOURCE_DIR}/cmake/merge_static_lib.cmake"
-        COMMENT "Merging Rust sword_utilfuns archive into sword_static"
-        VERBATIM
-    )
-    
-    add_dependencies(sword_static sword_rust_utilfuns)
-ENDIF(BUILDING_STATIC)
-
-# Also link for shared library
-IF(BUILDING_SHARED)
-    add_library(rust_utilfuns STATIC IMPORTED GLOBAL)
-    set_target_properties(rust_utilfuns PROPERTIES
-        IMPORTED_LOCATION "${SWORD_RUST_UTILFUNS_LIB}"
-    )
-    add_dependencies(sword sword_rust_utilfuns)
-    target_link_libraries(sword rust_utilfuns)
-ENDIF(BUILDING_SHARED)
 
 ################################################################################################
 # Some random user settings
@@ -213,9 +179,6 @@ IF(SWORD_ENABLE_PROFILEFN STREQUAL "Yes")
 ENDIF(SWORD_ENABLE_PROFILEFN STREQUAL "Yes")
 
 IF(MSVC)
-# Force the C++23 standard flag directly into MSVC's build parameters
-	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++23")
-
 	SET(CMAKE_C_FLAGS_DEBUG            "/D /O0 /DDEBUG ${CMAKE_C_FLAGS}")
 	SET(CMAKE_C_FLAGS_RELEASE          "/O3 /DNDEBUG ${CMAKE_C_FLAGS}")
 	SET(CMAKE_C_FLAGS_RELWITHDEBINFO   "/O3 /D /DDEBUG ${CMAKE_C_FLAGS}")
@@ -223,9 +186,6 @@ IF(MSVC)
 	SET(CMAKE_CXX_FLAGS_RELEASE        "/O3 ${CMAKE_CXX_FLAGS}")
 	SET(CMAKE_CXX_FLAGS_RELWITHDEBINFO "/O3 /D /DDEBUG ${CMAKE_CXX_FLAGS}")
 ELSE(MSVC)
-# Force the C++23 standard flag directly into MSVC's build parameters
-	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++23")
-
 	SET(CMAKE_C_FLAGS_DEBUG            "-g3 -Wall -O0 ${CMAKE_C_FLAGS}")
 	SET(CMAKE_C_FLAGS_RELEASE          "-O3 ${CMAKE_C_FLAGS}")
 	SET(CMAKE_C_FLAGS_RELWITHDEBINFO   "-O3 -g ${CMAKE_C_FLAGS}")
@@ -369,24 +329,3 @@ IF(SWORD_BUILD_TESTS)
 	INCLUDE(CTest)
 	ADD_SUBDIRECTORY("${CMAKE_CURRENT_SOURCE_DIR}/tests")
 ENDIF(SWORD_BUILD_TESTS)
-
-##############################################################################################
-# MANUALLY ADDED FOR UCRT64 COMPATIBILITY (2026 Fix)
-##############################################################################################
-# This forces the linker to find the libraries that the old script is missing.
-IF(MINGW)
-    # Link the shared library target
-    IF(TARGET sword)
-        TARGET_LINK_LIBRARIES(sword tre curl ws2_32 wldap32 crypt32)
-    ENDIF()
-
-    # Link the static library target
-    IF(TARGET sword_static)
-        TARGET_LINK_LIBRARIES(sword_static tre curl ws2_32 wldap32 crypt32)
-    ENDIF()
-
-    # Link the buildtest utility
-    IF(TARGET buildtest)
-        TARGET_LINK_LIBRARIES(buildtest tre curl ws2_32 wldap32 crypt32)
-    ENDIF()
-ENDIF(MINGW)

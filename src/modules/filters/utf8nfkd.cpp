@@ -26,8 +26,6 @@
 #include <utf8nfkd.h>
 #include <swbuf.h>
 
-#include <stdint.h>
-
 #include <unicode/utypes.h>
 #include <unicode/ucnv.h>
 #include <unicode/uchar.h>
@@ -58,7 +56,7 @@ char UTF8NFKD::processText(SWBuf &text, const SWKey *key, const SWModule *module
 	UErrorCode err = U_ZERO_ERROR;
 	UChar *source, *target;
 
-	if ((uintptr_t)key < 2) // hack, we're en(1)/de(0)ciphering
+	if ((unsigned long)key < 2)	// hack, we're en(1)/de(0)ciphering
 		return -1;
         
 	int32_t len =  5 + text.length() * 5;

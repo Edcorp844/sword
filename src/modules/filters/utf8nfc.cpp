@@ -26,7 +26,6 @@
 #include <unicode/unistr.h>
 #include <unicode/normlzr.h>
 #include <unicode/unorm.h>
-#include <stdint.h>
 
 #include <utf8nfc.h>
 #include <swbuf.h>
@@ -43,7 +42,7 @@ UTF8NFC::~UTF8NFC() {
 
 char UTF8NFC::processText(SWBuf &text, const SWKey *key, const SWModule *module)
 {
-	 if ((uintptr_t)key < 2)	// hack, we're en(1)/de(0)ciphering
+	if ((unsigned long)key < 2)	// hack, we're en(1)/de(0)ciphering
 		return -1;
         
 	err = U_ZERO_ERROR;

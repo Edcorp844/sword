@@ -28,12 +28,6 @@
 #include <swlog.h>
 #include <swbuf.h>
 
-#include <string_view>
-#include <algorithm>
-#include <ranges>
-#include <cstring>
-#include <iterator>
-
 
 SWORD_NAMESPACE_START
 
@@ -112,6 +106,7 @@ const unsigned char SW_tolower_array[256] = {
 };
 
 
+
 /******************************************************************************
  * strstrip - Removes leading and trailing spaces from a string
  *
@@ -120,61 +115,118 @@ const unsigned char SW_tolower_array[256] = {
  * RET:	*istr
  */
 
-namespace {
-	constexpr bool is_whitespace(char c) noexcept {
-		return c == ' ' || c == '\t' || c == '\n' || c == '\r';
-	}
-}
+char *strstrip(char *istr) {
+	char *tmp = istr;
+	char *rtmp;
 
-extern "C" {
-	char *sword_strstrip(char *istr);
-	const char *sword_stristr(const char *s1, const char *s2);
-	int sword_strnicmp(const char *s1, const char *s2, int len);
-	int sword_stricmp(const char *s1, const char *s2);
-	char *sword_assure_valid_utf8(const char *buf);
-}
+	int len = (int)strlen(istr);
+	if (len < 1)
+		return istr;
+	rtmp = istr + (len - 1);
+	
+	while ((rtmp > istr)&&((*rtmp == ' ')||(*rtmp == '\t')||(*rtmp == 10)||(*rtmp == 13))) *(rtmp--) = 0;
+	while ((*tmp == ' ')||(*tmp == '\t')||(*tmp == 10)||(*tmp == 13)) tmp++;
+	memmove(istr, tmp, (rtmp - tmp) + 1);
+	istr[(rtmp - tmp) + 1] = 0;
 
-char* strstrip(char* istr) {
-	return sword_strstrip(istr);
+	return istr;
 }
 
 
 /******************************************************************************
  * stristr - Scans a string for the occurrence of a given substring, no case
  *
- * ENT:	scans s1 for the first occurrence of the substring s2, ignoring case
+ * ENT:	scans s1 for the first occurrence of the substring s2, ingnoring case
  *
- * RET:	a pointer to the element in s1, where s2 begins (points into s1).
+ * RET:	a pointer to the element in s1, where s2 begins (points to s2 in s1).
  *			If s2 does not occur in s1, returns null.
  */
 
 const char *stristr(const char *s1, const char *s2) {
-	return sword_stristr(s1, s2);
+	int tLen = (int)strlen(s2);
+	int cLen = (int)strlen(s1);
+	char *target = new char [ tLen + 1 ];
+	int i, j;
+	const char *retVal = 0;
+
+	strcpy(target, s2);
+	for (i = 0; i < tLen; i++)
+		target[i] = SW_toupper(target[i]);
+
+	for (i = 0; i < (cLen - tLen)+1; i++) {
+		if (SW_toupper(s1[i]) == (unsigned char)*target) {
+			for (j = 1; j < tLen; j++) {
+				if (SW_toupper(s1[i+j]) != (unsigned char)target[j])
+					break;
+			}
+			if (j == tLen) {
+				retVal = s1+i;
+				break;
+			}
+		}
+	}
+	delete [] target;
+	return retVal;
 }
 
 /******************************************************************************
  * strnicmp - compares the first n bytes of 2 strings ignoring case
  *
- * ENT:	compares s1 to s2 comparing the first n bytes ignoring case
+ * ENT:	compares s1 to s2 comparing the first n byte ingnoring case
  *
  * RET:	same as strcmp
  */
 
 int strnicmp(const char *s1, const char *s2, int len) {
-	return sword_strnicmp(s1, s2, len);
+	int tLen = (int)strlen(s2);
+	int cLen = (int)strlen(s1);
+	char diff;
+	int i;
+	for (i = 0; ((i < len) && (i < tLen) && (i < cLen)); i++) {
+		if ((diff = SW_toupper(*s1) - SW_toupper(*s2)))
+			return diff;
+	s1++;
+	s2++;
+	}
+	return (i < len) ? cLen - tLen : 0;
 }
 
 int stricmp(const char *s1, const char *s2) {
-	return sword_stricmp(s1, s2);
+#if defined(__GNUC__)
+	return ::strcasecmp(s1, s2);
+#else
+ #if defined(_WIN32_WCE)
+	return ::_stricmp(s1, s2);
+ #else
+	return ::stricmp(s1, s2);
+ #endif
+#endif
 }
 
 
 SWBuf assureValidUTF8(const char *buf) {
-	if (!buf) return SWBuf();
-	char *rustBuf = sword_assure_valid_utf8(buf);
-	SWBuf result(rustBuf);
-	free(rustBuf);
-	return result;
+
+	SWBuf myCopy = buf;
+	const unsigned char *b = (const unsigned char *)myCopy.c_str();
+	const unsigned char *q = 0;
+	bool invalidChar = false;
+	while (*b) {
+		q = b;
+		if (!getUniCharFromUTF8(&b)) {
+			long len = b - q;
+			if (len) {
+				invalidChar = true;
+				for (long start = q - (const unsigned char *)myCopy.c_str(); len; len--) {
+					myCopy[start+len-1] = 0x1a;	// unicode replacement character
+				}
+				
+			}
+		}
+	}
+	if (invalidChar) {
+//		SWLog::getSystemLog()->logWarning("Changing invalid UTF-8 string (%s) to (%s)\n", buf, myCopy.c_str());
+	}
+	return myCopy;
 }
 
 
@@ -182,11 +234,11 @@ SWBuf assureValidUTF8(const char *buf) {
  * This can be called to convert a UTF8 stream to an SWBuf which manages
  *	a wchar_t[]
  *	access buffer with (wchar_t *)SWBuf::getRawData();
- *
+ * 
  */
 SWBuf utf8ToWChar(const char *buf) {
 
-	const char *q = nullptr;
+	const char *q = 0;
 	SWBuf wcharBuf;
 	while (*buf) {
 		q = buf;
@@ -206,7 +258,7 @@ SWBuf utf8ToWChar(const char *buf) {
 
 /****
  * This can be called to convert a wchar_t[] to a UTF-8 SWBuf
- *
+ * 
  */
 SWBuf wcharToUTF8(const wchar_t *buf) {
 

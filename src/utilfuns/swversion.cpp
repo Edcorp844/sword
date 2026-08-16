@@ -25,9 +25,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+
 SWORD_NAMESPACE_START
 
-SWVersion SWVersion::currentVersion(SWORD_VERSION_STR);
+
+SWVersion SWVersion::currentVersion( SWORD_VERSION_STR );
+
 
 /******************************************************************************
  * SWVersion c-tor - Constructs a new SWVersion
@@ -35,12 +38,11 @@ SWVersion SWVersion::currentVersion(SWORD_VERSION_STR);
  * ENT:	version	- const version string
  */
 
-SWVersion::SWVersion(const char *version)
-{
-	char *buf = new char[strlen(version) + 1];
+SWVersion::SWVersion(const char *version) {
+	char *buf = new char[ strlen(version) + 1 ];
 	char *tok;
 	major = minor = minor2 = minor3 = -1;
-
+		
 	strcpy(buf, version);
 	tok = strtok(buf, ".");
 	if (tok)
@@ -54,8 +56,9 @@ SWVersion::SWVersion(const char *version)
 	tok = strtok(0, ".");
 	if (tok)
 		minor3 = atoi(tok);
-	delete[] buf;
+	delete [] buf;
 }
+
 
 /******************************************************************************
  * compare - compares this version to another version
@@ -67,48 +70,39 @@ SWVersion::SWVersion(const char *version)
  * 		> 0 if this version is greater than other version
  */
 
-int SWVersion::compare(const SWVersion &vi) const
-{
+int SWVersion::compare(const SWVersion &vi) const {
 	if (major == vi.major)
 		if (minor == vi.minor)
 			if (minor2 == vi.minor2)
 				if (minor3 == vi.minor3)
 					return 0;
-				else
-					return minor3 - vi.minor3;
-			else
-				return minor2 - vi.minor2;
-		else
-			return minor - vi.minor;
-	else
-		return major - vi.major;
+				else return minor3 - vi.minor3;
+			else	return minor2 - vi.minor2;
+		else	return minor - vi.minor;
+	else	return major - vi.major;
 }
 
-const char *SWVersion::getText() const
-{
+
+const char *SWVersion::getText() const {
 
 	// 255 is safe because there is no way 4 integers (plus 3 '.'s) can have
 	// a string representation that will overrun this buffer
 	static char buf[255];
 
-	if (minor > -1)
-	{
-		if (minor2 > -1)
-		{
-			if (minor3 > -1)
-			{
-				snprintf(buf, sizeof(buf), "%d.%d.%d.%d", major, minor, minor2, minor3);
+	if (minor > -1) {
+		if (minor2 > -1) {
+			if (minor3 > -1) {
+				sprintf(buf, "%d.%d.%d.%d", major, minor, minor2, minor3);
 			}
-			else
-				snprintf(buf, sizeof(buf), "%d.%d.%d", major, minor, minor2);
+			else	sprintf(buf, "%d.%d.%d", major, minor, minor2);
 		}
-		else
-			snprintf(buf, sizeof(buf), "%d.%d", major, minor);
+		else	sprintf(buf, "%d.%d", major, minor);
 	}
-	else
-		snprintf(buf, sizeof(buf), "%d", major);
+	else	sprintf(buf, "%d", major);
 
 	return buf;
 }
 
+
 SWORD_NAMESPACE_END
+

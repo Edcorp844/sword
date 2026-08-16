@@ -22,7 +22,6 @@
 
 #include <utf8latin1.h>
 #include <swbuf.h>
-#include <stdint.h>
 
 
 SWORD_NAMESPACE_START
@@ -39,7 +38,7 @@ char UTF8Latin1::processText(SWBuf &text, const SWKey *key, const SWModule *modu
   unsigned long uchar;
   unsigned char significantFirstBits, subsequent;
   
-   if ((uintptr_t)key < 2) {// hack, we're en(1)/de(0)ciphering
+  if ((unsigned long)key < 2) {// hack, we're en(1)/de(0)ciphering
 	return (char)-1;
   }
 
