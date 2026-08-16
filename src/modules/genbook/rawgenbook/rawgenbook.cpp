@@ -62,7 +62,7 @@ RawGenBook::RawGenBook(const char *ipath, const char *iname, const char *idesc, 
 	key = createKey();
 
 
-	snprintf(buf, sizeof(buf), "%s.bdt", path);
+	sprintf(buf, "%s.bdt", path);
 	bdtfd = FileMgr::getSystemFileMgr()->open(buf, FileMgr::RDWR, true);
 
 	delete [] buf;
@@ -199,7 +199,7 @@ char RawGenBook::createModule(const char *ipath) {
 	if ((path[strlen(path)-1] == '/') || (path[strlen(path)-1] == '\\'))
 		path[strlen(path)-1] = 0;
 
-	snprintf(buf, sizeof(buf), "%s.bdt", path);
+	sprintf(buf, "%s.bdt", path);
 	FileMgr::removeFile(buf);
 	fd = FileMgr::getSystemFileMgr()->open(buf, FileMgr::CREAT|FileMgr::WRONLY, FileMgr::IREAD|FileMgr::IWRITE);
 	fd->getFd();
