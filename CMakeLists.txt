@@ -123,42 +123,39 @@ IF(LIBSWORD_LIBRARY_TYPE MATCHES ".*Static.*" OR NOT LIBSWORD_LIBRARY_TYPE)
 	MESSAGE(STATUS "Building Static library.")
 ENDIF(LIBSWORD_LIBRARY_TYPE MATCHES ".*Static.*" OR NOT LIBSWORD_LIBRARY_TYPE)
 
-# Temporarily disabled - Rust not installed
-# ADD_SUBDIRECTORY(src/utilfuns-rs)
+ADD_SUBDIRECTORY(src/utilfuns-rs)
 
 # Post-build: merge Rust archive objects into sword_static
-# TEMPORARILY DISABLED - Rust not installed
-# IF(BUILDING_STATIC)
-#     set(RUST_UTILFUNS_STAGE_DIR "${CMAKE_BINARY_DIR}/src/utilfuns-rs/target/release/utilfuns-stage")
-#     
-#     add_custom_command(
-#         TARGET sword_static POST_BUILD
-#         COMMAND ${CMAKE_COMMAND} -E remove_directory "${RUST_UTILFUNS_STAGE_DIR}"
-#         COMMAND ${CMAKE_COMMAND} -E make_directory "${RUST_UTILFUNS_STAGE_DIR}"
-#         COMMAND ${CMAKE_COMMAND} -E chdir "${RUST_UTILFUNS_STAGE_DIR}" ${CMAKE_AR} x "${SWORD_RUST_UTILFUNS_LIB}"
-#         COMMAND ${CMAKE_COMMAND}
-#                 -DSTAGE_DIR=${RUST_UTILFUNS_STAGE_DIR}
-#                 -DTARGET_LIB=$<TARGET_FILE:sword_static>
-#                 -DCMAKE_AR=${CMAKE_AR}
-#                 -DCMAKE_RANLIB=${CMAKE_RANLIB}
-#                 -P "${CMAKE_SOURCE_DIR}/cmake/merge_static_lib.cmake"
-#         COMMENT "Merging Rust sword_utilfuns archive into sword_static"
-#         VERBATIM
-#     )
-#     
-#     add_dependencies(sword_static sword_rust_utilfuns)
-# ENDIF(BUILDING_STATIC)
+IF(BUILDING_STATIC)
+    set(RUST_UTILFUNS_STAGE_DIR "${CMAKE_BINARY_DIR}/src/utilfuns-rs/target/release/utilfuns-stage")
+    
+    add_custom_command(
+        TARGET sword_static POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E remove_directory "${RUST_UTILFUNS_STAGE_DIR}"
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${RUST_UTILFUNS_STAGE_DIR}"
+        COMMAND ${CMAKE_COMMAND} -E chdir "${RUST_UTILFUNS_STAGE_DIR}" ${CMAKE_AR} x "${SWORD_RUST_UTILFUNS_LIB}"
+        COMMAND ${CMAKE_COMMAND}
+                -DSTAGE_DIR=${RUST_UTILFUNS_STAGE_DIR}
+                -DTARGET_LIB=$<TARGET_FILE:sword_static>
+                -DCMAKE_AR=${CMAKE_AR}
+                -DCMAKE_RANLIB=${CMAKE_RANLIB}
+                -P "${CMAKE_SOURCE_DIR}/cmake/merge_static_lib.cmake"
+        COMMENT "Merging Rust sword_utilfuns archive into sword_static"
+        VERBATIM
+    )
+    
+    add_dependencies(sword_static sword_rust_utilfuns)
+ENDIF(BUILDING_STATIC)
 
 # Also link for shared library
-# TEMPORARILY DISABLED - Rust not installed
-# IF(BUILDING_SHARED)
-#     add_library(rust_utilfuns STATIC IMPORTED GLOBAL)
-#     set_target_properties(rust_utilfuns PROPERTIES
-#         IMPORTED_LOCATION "${SWORD_RUST_UTILFUNS_LIB}"
-#     )
-#     add_dependencies(sword sword_rust_utilfuns)
-#     target_link_libraries(sword rust_utilfuns)
-# ENDIF(BUILDING_SHARED)
+IF(BUILDING_SHARED)
+    add_library(rust_utilfuns STATIC IMPORTED GLOBAL)
+    set_target_properties(rust_utilfuns PROPERTIES
+        IMPORTED_LOCATION "${SWORD_RUST_UTILFUNS_LIB}"
+    )
+    add_dependencies(sword sword_rust_utilfuns)
+    target_link_libraries(sword rust_utilfuns)
+ENDIF(BUILDING_SHARED)
 
 ################################################################################################
 # Some random user settings
